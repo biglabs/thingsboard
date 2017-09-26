@@ -46,7 +46,7 @@ public abstract class CassandraAbstractAsyncDao extends CassandraAbstractDao {
         }
     }
 
-    protected <T> ListenableFuture<T> getFuture(ResultSetFuture future, java.util.function.Function<ResultSet, T> transformer) {
+    protected <T> ListenableFuture<T> getFuture(ResultSetFuture future, java.util.function.Function<ResultSet, T    > transformer) {
         return Futures.transform(future, new Function<ResultSet, T>() {
             @Nullable
             @Override
