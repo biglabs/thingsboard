@@ -1,14 +1,15 @@
 package com.biglabs.iot.tsexportservice.dao;
 
 import com.biglabs.iot.tsexportservice.data.Export;
-import com.datastax.driver.core.ResultSetFuture;
+import com.biglabs.iot.tsexportservice.data.ExportedDeviceResult;
+import com.google.common.util.concurrent.ListenableFuture;
+import org.thingsboard.server.common.data.Device;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Created by antt on 9/19/17.
  */
 public interface TsExportDao {
-    List<ResultSetFuture> export(Export export, List<String> deviceIds);
+    ListenableFuture<List<ExportedDeviceResult>> export(Export export, List<Device> deviceIds);
 }
