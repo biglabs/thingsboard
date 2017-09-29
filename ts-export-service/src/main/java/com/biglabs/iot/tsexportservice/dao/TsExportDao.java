@@ -11,5 +11,5 @@ import java.util.List;
  * Created by antt on 9/19/17.
  */
 public interface TsExportDao {
-    ListenableFuture<List<DeviceTsData>> export(ExportInfo export, List<Device> devices);
+    ListenableFuture<List<DeviceTsData>> export(ExportInfo exportInfo, List<Device> devices);
 }

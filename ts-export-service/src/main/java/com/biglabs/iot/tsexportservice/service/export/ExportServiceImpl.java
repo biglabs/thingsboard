@@ -2,6 +2,7 @@ package com.biglabs.iot.tsexportservice.service.export;
 
 import com.biglabs.iot.tsexportservice.dao.TsDeviceDao;
 import com.biglabs.iot.tsexportservice.dao.TsExportDao;
+import com.biglabs.iot.tsexportservice.data.EXPORT_FORMAT;
 import com.biglabs.iot.tsexportservice.data.ExportInfo;
 import com.biglabs.iot.tsexportservice.data.DeviceTsData;
 import com.biglabs.iot.tsexportservice.utils.ObjectToJsonFile;
@@ -41,17 +42,17 @@ public class ExportServiceImpl implements ExportService {
     public void init() { }
 
     @Override
-    public void export(ExportInfo export, TenantId tenantId, DeferredResult<ResponseEntity> result) {
+    public void export(ExportInfo exportInfo, TenantId tenantId, DeferredResult<ResponseEntity> result) {
         List<Device> devices = findDevicesByTenantId(tenantId);
-        ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(export, devices);
-        Futures.addCallback(future, getDeviceTsDataListCallback(result));
+        ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(exportInfo, devices);
+        Futures.addCallback(future, getDeviceTsDataListCallback(result, exportInfo));
     }
 
     @Override
-    public void export(ExportInfo export, CustomerId customerId, DeferredResult<ResponseEntity> result) {
+    public void export(ExportInfo exportInfo, CustomerId customerId, DeferredResult<ResponseEntity> result) {
         List<Device> devices = findDevicesByCustomerId(customerId);
-        ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(export, devices);
-        Futures.addCallback(future, getDeviceTsDataListCallback(result));
+        ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(exportInfo, devices);
+        Futures.addCallback(future, getDeviceTsDataListCallback(result, exportInfo));
     }
 
     @Override
@@ -70,12 +71,13 @@ public class ExportServiceImpl implements ExportService {
         return devices;
     }
 
-    private FutureCallback<List<DeviceTsData>> getDeviceTsDataListCallback(final DeferredResult<ResponseEntity> result) {
+    private FutureCallback<List<DeviceTsData>> getDeviceTsDataListCallback(final DeferredResult<ResponseEntity> result, ExportInfo exportInfo) {
         return new FutureCallback<List<DeviceTsData>>() {
             @Override
             public void onSuccess(List<DeviceTsData> data) {
                 result.setResult(new ResponseEntity<>(data, HttpStatus.OK));
-                objectToJsonFile.writeJsonFile(data, RandomStringUtils.randomAlphanumeric(20) + ".json");
+                String format = exportInfo.getExportFormat() == EXPORT_FORMAT.JSON ? ".json" : ".csv";
+                objectToJsonFile.writeJsonFile(data, RandomStringUtils.randomAlphanumeric(20) + format);
             }
 
             @Override

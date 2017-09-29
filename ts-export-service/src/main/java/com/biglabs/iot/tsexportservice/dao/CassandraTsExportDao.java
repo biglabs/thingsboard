@@ -32,8 +32,8 @@ public class CassandraTsExportDao implements TsExportDao {
     CassandraBaseTimeseriesDao timeseriesDao;
 
     @Override
-    public ListenableFuture<List<DeviceTsData>> export(ExportInfo export, List<Device> devices) {
-        return Futures.allAsList(devices.stream().map(device -> export(export, device)).collect(Collectors.toList()));
+    public ListenableFuture<List<DeviceTsData>> export(ExportInfo exportInfo, List<Device> devices) {
+        return Futures.allAsList(devices.stream().map(device -> export(exportInfo, device)).collect(Collectors.toList()));
     }
 
     private ListenableFuture<DeviceTsData> export(ExportInfo exportInfo, Device device) {

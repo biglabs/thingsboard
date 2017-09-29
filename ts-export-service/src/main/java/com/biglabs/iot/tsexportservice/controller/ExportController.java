@@ -21,7 +21,8 @@ public class ExportController extends BaseController {
                                                  @RequestParam(required = false) String endTs,
                                                  @RequestParam(required = false) String format) throws TsExportException {
         DeferredResult<ResponseEntity> result = new DeferredResult<ResponseEntity>();
-        ExportInfo exportInfo = new ExportInfo(Long.valueOf(startTs), Long.valueOf(endTs), EXPORT_FORMAT.JSON);
+        ExportInfo exportInfo = new ExportInfo(Long.valueOf(startTs), Long.valueOf(endTs),
+                EXPORT_FORMAT.forName(format) == EXPORT_FORMAT.JSON ? EXPORT_FORMAT.JSON : EXPORT_FORMAT.CSV);
         if (getCurrentUser().getAuthority() == Authority.TENANT_ADMIN) {
             // TO DO call service
             exportService.export(exportInfo, getCurrentUser().getTenantId(), result);
