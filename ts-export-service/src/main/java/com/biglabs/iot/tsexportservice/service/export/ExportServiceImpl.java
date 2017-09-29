@@ -9,6 +9,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,9 @@ public class ExportServiceImpl implements ExportService {
     @Autowired
     TsDeviceDao tsDeviceDao;
 
+    @Autowired
+    ObjectToJsonFile objectToJsonFile;
+
     @PostConstruct
     public void init() { }
 
@@ -40,14 +44,14 @@ public class ExportServiceImpl implements ExportService {
     public void export(ExportInfo export, TenantId tenantId, DeferredResult<ResponseEntity> result) {
         List<Device> devices = findDevicesByTenantId(tenantId);
         ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(export, devices);
-        Futures.addCallback(future, getTsKvListCallback(result));
+        Futures.addCallback(future, getDeviceTsDataListCallback(result));
     }
 
     @Override
     public void export(ExportInfo export, CustomerId customerId, DeferredResult<ResponseEntity> result) {
         List<Device> devices = findDevicesByCustomerId(customerId);
         ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(export, devices);
-        Futures.addCallback(future, getTsKvListCallback(result));
+        Futures.addCallback(future, getDeviceTsDataListCallback(result));
     }
 
     @Override
@@ -66,13 +70,12 @@ public class ExportServiceImpl implements ExportService {
         return devices;
     }
 
-    private FutureCallback<List<DeviceTsData>> getTsKvListCallback(final DeferredResult<ResponseEntity> result) {
+    private FutureCallback<List<DeviceTsData>> getDeviceTsDataListCallback(final DeferredResult<ResponseEntity> result) {
         return new FutureCallback<List<DeviceTsData>>() {
             @Override
             public void onSuccess(List<DeviceTsData> data) {
-                //results.addAll(data);
                 result.setResult(new ResponseEntity<>(data, HttpStatus.OK));
-                ObjectToJsonFile.writeJsonFile(data);
+                objectToJsonFile.writeJsonFile(data, RandomStringUtils.randomAlphanumeric(20) + ".json");
             }
 
             @Override
