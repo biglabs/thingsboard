@@ -1,15 +1,15 @@
 package com.biglabs.iot.tsexportservice.dao;
 
-import com.biglabs.iot.tsexportservice.data.Export;
-import com.biglabs.iot.tsexportservice.data.ExportedDeviceResult;
-import com.datastax.driver.core.*;
+import com.biglabs.iot.tsexportservice.data.DeviceTsData;
+import com.biglabs.iot.tsexportservice.data.ExportInfo;
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.thingsboard.server.common.data.Device;
-import org.thingsboard.server.common.data.id.DeviceId;
 import org.thingsboard.server.common.data.kv.Aggregation;
 import org.thingsboard.server.common.data.kv.BaseTsKvQuery;
 import org.thingsboard.server.common.data.kv.TsKvEntry;
@@ -23,85 +23,39 @@ import java.util.stream.Collectors;
 /**
  * Created by antt on 9/15/17.
  */
-public class CassandraTsExportDao extends CassandraBaseTimeseriesDao implements TsExportDao {
+
+@Component
+@Slf4j
+public class CassandraTsExportDao implements TsExportDao {
+
     @Autowired
-    Session session;
-
-    private static class DvEntries {
-        DeviceId id;
-        ListenableFuture<List<TsKvEntry>> entries;
-
-        public DvEntries(DeviceId id, ListenableFuture<List<TsKvEntry>> entries) {
-            this.id = id;
-            this.entries = entries;
-        }
-    }
-
-    private class DeviceExportResult {
-        DeviceId id;
-        List<TsKvEntry> entries;
-
-        public DeviceExportResult(DeviceId id, List<TsKvEntry> entries) {
-            this.id = id;
-            this.entries = entries;
-        }
-
-    }
+    CassandraBaseTimeseriesDao timeseriesDao;
 
     @Override
-    public ListenableFuture<List<ExportedDeviceResult>> export(Export export, List<Device> devices) {
+    public ListenableFuture<List<DeviceTsData>> export(ExportInfo export, List<Device> devices) {
         return Futures.allAsList(devices.stream().map(device -> export(export, device)).collect(Collectors.toList()));
     }
 
-//    private ListenableFuture<DeviceExportResult> export(Export export, String deviceId) {
-//        ListenableFuture<List<TsKvEntry>> allKeys = findAllLatest(DeviceId.fromString(deviceId));
-//        ListenableFuture<List<TsKvEntry>> kvEntries = Futures.transform(allKeys, new AsyncFunction<List<TsKvEntry>, List<TsKvEntry>>() {
-//            @Override
-//            public ListenableFuture<List<TsKvEntry>> apply(List<TsKvEntry> input) throws Exception {
-//                List<TsKvQuery> queries = input.stream()
-//                                                .map(kv -> new BaseTsKvQuery(kv.getKey(),
-//                                                                            export.getFromTime(),
-//                                                                            export.getToTime(),
-//                                                                            1, Integer.MAX_VALUE,
-//                                                                            Aggregation.NONE))
-//                                                .collect(Collectors.toList());
-//                return findAllAsync(DeviceId.fromString(deviceId), queries);
-//            }
-//        });
-//
-//        ListenableFuture<DeviceExportResult> deviceExport = Futures.transform(kvEntries, new Function<List<TsKvEntry>, DeviceExportResult>() {
-//            @Nullable
-//            @Override
-//            public DeviceExportResult apply(@Nullable List<TsKvEntry> input) {
-//                return new DeviceExportResult(DeviceId.fromString(deviceId), input);
-//            }
-//        });
-//        return deviceExport;
-//    }
-
-    private ListenableFuture<ExportedDeviceResult> export(Export export, Device device) {
-        ListenableFuture<List<TsKvEntry>> allKeys = findAllLatest(device.getId());
-        ListenableFuture<List<TsKvEntry>> kvEntries = Futures.transform(allKeys, new AsyncFunction<List<TsKvEntry>, List<TsKvEntry>>() {
+    private ListenableFuture<DeviceTsData> export(ExportInfo exportInfo, Device device) {
+        return  Futures.transform(timeseriesDao.findAllLatest(device.getId()), new AsyncFunction<List<TsKvEntry>, DeviceTsData>() {
             @Override
-            public ListenableFuture<List<TsKvEntry>> apply(List<TsKvEntry> input) throws Exception {
+            public ListenableFuture<DeviceTsData> apply(List<TsKvEntry> input) throws Exception {
                 List<TsKvQuery> queries = input.stream()
                         .map(kv -> new BaseTsKvQuery(kv.getKey(),
-                                export.getFromTime(),
-                                export.getToTime(),
+                                exportInfo.getStartTs(),
+                                exportInfo.getEndTs(),
                                 1, Integer.MAX_VALUE,
                                 Aggregation.NONE))
                         .collect(Collectors.toList());
-                return findAllAsync(device.getId(), queries);
+                //return timeseriesDao.findAllAsync(device.getId(), queries);
+                return Futures.transform(timeseriesDao.findAllAsync(device.getId(), queries), new Function<List<TsKvEntry>, DeviceTsData>() {
+                    @Nullable
+                    @Override
+                    public DeviceTsData apply(@Nullable List<TsKvEntry> input) {
+                        return new DeviceTsData(device, input);
+                    }
+                });
             }
         });
-
-        ListenableFuture<ExportedDeviceResult> deviceExport = Futures.transform(kvEntries, new Function<List<TsKvEntry>, ExportedDeviceResult>() {
-            @Nullable
-            @Override
-            public ExportedDeviceResult apply(@Nullable List<TsKvEntry> input) {
-                return new ExportedDeviceResult(device, input);
-            }
-        });
-        return deviceExport;
     }
 }
