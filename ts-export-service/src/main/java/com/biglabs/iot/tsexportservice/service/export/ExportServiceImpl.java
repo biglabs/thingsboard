@@ -38,14 +38,14 @@ public class ExportServiceImpl implements ExportService {
 
     @Override
     public void export(ExportInfo export, TenantId tenantId, DeferredResult<ResponseEntity> result) {
-        List<Device> devices = tsDeviceDao.findDevicesByTenantId(tenantId.getId());
+        List<Device> devices = findDevicesByTenantId(tenantId);
         ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(export, devices);
         Futures.addCallback(future, getTsKvListCallback(result));
     }
 
     @Override
     public void export(ExportInfo export, CustomerId customerId, DeferredResult<ResponseEntity> result) {
-        List<Device> devices = tsDeviceDao.findDevicesByCustomerId(customerId.getId());
+        List<Device> devices = findDevicesByCustomerId(customerId);
         ListenableFuture<List<DeviceTsData>> future = tsExportDao.export(export, devices);
         Futures.addCallback(future, getTsKvListCallback(result));
     }
